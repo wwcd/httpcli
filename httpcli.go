@@ -15,7 +15,8 @@ var DefaultTransport = &http.Transport{
 		KeepAlive: 30 * time.Second,
 		DualStack: true,
 	}).DialContext,
-	MaxIdleConns:          100,
+	MaxIdleConns:          500,
+	MaxIdleConnsPerHost:   250,
 	IdleConnTimeout:       90 * time.Second,
 	TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 	TLSHandshakeTimeout:   10 * time.Second,
@@ -70,6 +71,17 @@ func Post(ctx context.Context, url string, contentType string, body io.Reader) (
 
 func Put(ctx context.Context, url string, contentType string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodPut, url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", contentType)
+
+	return Do(ctx, req)
+}
+
+func Patch(ctx context.Context, url string, contentType string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodPatch, url, body)
 	if err != nil {
 		return nil, err
 	}
