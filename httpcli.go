@@ -3,24 +3,37 @@ package httpcli
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"os"
 	"time"
 )
 
-var DefaultTransport = &http.Transport{
-	DialContext: (&net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-		DualStack: true,
-	}).DialContext,
-	MaxIdleConns:          500,
-	MaxIdleConnsPerHost:   250,
-	IdleConnTimeout:       90 * time.Second,
-	TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-	TLSHandshakeTimeout:   10 * time.Second,
-	ExpectContinueTimeout: 1 * time.Second,
+var (
+	DefaultTransport http.RoundTripper
+
+	debug bool
+)
+
+func init() {
+	DefaultTransport = &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:          500,
+		MaxIdleConnsPerHost:   250,
+		IdleConnTimeout:       90 * time.Second,
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
+	debug = (os.Getenv("HTTPCLIDEBUG") != "")
 }
 
 type cli struct {
@@ -46,7 +59,18 @@ func Do(ctx context.Context, req *http.Request, opts ...Option) (*http.Response,
 		Transport: DefaultTransport,
 	}
 
-	return client.Do(req.WithContext(ctx))
+	rsp, err := client.Do(req.WithContext(ctx))
+
+	if debug {
+		var b []byte
+		b, _ = httputil.DumpRequest(rsp.Request, true)
+		fmt.Printf("%s\n", b)
+
+		b, _ = httputil.DumpResponse(rsp, true)
+		fmt.Printf("%s\n", b)
+	}
+
+	return rsp, err
 }
 
 func Get(ctx context.Context, url string) (*http.Response, error) {
