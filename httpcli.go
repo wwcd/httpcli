@@ -61,7 +61,7 @@ func Do(ctx context.Context, req *http.Request, opts ...Option) (*http.Response,
 
 	rsp, err := client.Do(req.WithContext(ctx))
 
-	if debug {
+	if debug && rsp != nil {
 		var b []byte
 		b, _ = httputil.DumpRequest(rsp.Request, true)
 		fmt.Printf("%s\n", b)
